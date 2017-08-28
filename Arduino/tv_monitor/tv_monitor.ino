@@ -18,6 +18,7 @@ RCSwitch mySwitch = RCSwitch();
 // Variables for command processing
 String inputCommand = "";
 boolean commandAvailable = false;
+boolean readyForCommands = false;
 
 SoftwareSerial displaySerial(2,3) ; // pin 2 = TX of display, pin3 = RX
 Goldelox_Serial_4DLib Display(&displaySerial);
@@ -75,22 +76,27 @@ void Callback(int ErrCode, unsigned char ErrByte)
 }
 
 void processCommand() {
-  if (inputCommand.startsWith("T")) {
-    unsigned long newDuration = inputCommand.substring(1).toInt();
-    if (newDuration > 0) {
-      screenTimeDuration = newDuration*1000;
-      screenTimeStart = millis();
+  if (readyForCommands) {
+    if (inputCommand.startsWith("T")) {
+      unsigned long newDuration = inputCommand.substring(1).toInt();
+      if (newDuration > 0) {
+        screenTimeDuration = newDuration*1000;
+        screenTimeStart = millis();
+      }
+    } else if (inputCommand.startsWith("M")) {
+      displayMessage(inputCommand.substring(1));
+    } else if (inputCommand.startsWith("C")) {
+      Display.gfx_Cls();
     }
-  } else if (inputCommand.startsWith("M")) {
-    displayMessage(inputCommand.substring(1));
-  } else if (inputCommand.startsWith("C")) {
-    Display.gfx_Cls();
   }
   inputCommand.remove(0);
 }
 
 void setup()
 {
+  Serial.begin(19200);
+  inputCommand.reserve(200);
+  
   pinMode(13,OUTPUT);
   pinMode(RESETLINE, OUTPUT);  // Set D4 on Arduino to Output (4D Arduino Adaptor V2 - Display Reset)
   digitalWrite(RESETLINE, 0);  // Reset the Display via D4
@@ -104,13 +110,14 @@ void setup()
 
   Display.SSTimeout(0); // NULL ;
   Display.gfx_Cls();
-
-  Serial.begin(19200);
-  inputCommand.reserve(200);
+  Display.txt_MoveCursor(0, 0) ;
+  Display.txt_FGcolour(WHITE);
+  Display.putstr("Screen Time") ;
 
   // Optional set number of transmission repetitions.
   // mySwitch.setRepeatTransmit(15);
   mySwitch.enableTransmit(5);
+  readyForCommands = true;
   
   digitalWrite(13, LOW);    // turn the LED off by making the voltage LOW
 }
