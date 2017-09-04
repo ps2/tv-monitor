@@ -16,8 +16,9 @@ def connect_to_display(path):
 app = Flask(__name__)
 
 def update_time_remaining(remaining):
-    cache.set('screen_time_start', time.time())
-    cache.set('screen_time_duration', remaining)
+    cache_timeout = remaining+60
+    cache.set('screen_time_start', time.time(), timeout=cache_timeout)
+    cache.set('screen_time_duration', remaining, timeout=cache_timeout)
     ser = connect_to_display(SERIAL_PATH)
     ser.write("T%d\n" % remaining)
 
@@ -48,17 +49,17 @@ def index():
     remaining = get_time_remaining()
     return render_template("screentime.html", remaining=format_remaining(remaining))
 
-@app.route('/add')
-def add_ten_minutes():
+@app.route('/add/<minutes>')
+def add_ten_minutes(minutes):
     remaining = get_time_remaining()
-    remaining += 10 * 60
+    remaining += int(minutes) * 60
     update_time_remaining(remaining)
     return redirect(url_for('index'))
 
-@app.route('/subtract')
-def subtract_ten_minutes():
+@app.route('/subtract/<minutes>')
+def subtract_ten_minutes(minutes):
     remaining = get_time_remaining()
-    remaining -= 10 * 60
+    remaining -= int(minutes) * 60
     update_time_remaining(remaining)
     return redirect(url_for('index'))
 
